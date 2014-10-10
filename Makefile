@@ -18,13 +18,13 @@ pthread-hello: pthread-hello.o
 lookup.o: lookup.c
 	$(CC) $(CFLAGS) $<
 
-queueTest.o: queueTest.c
+queueTest.o: queue/queueTest.c
 	$(CC) $(CFLAGS) $<
 
-queue.o: queue.c queue.h
+queue.o: queue/queue.c queue/queue.h
 	$(CC) $(CFLAGS) $<
 
-util.o: util.c util.h
+util.o: util/util.c util/util.h
 	$(CC) $(CFLAGS) $<
 
 pthread-hello.o: pthread-hello.c
