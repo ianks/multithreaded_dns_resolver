@@ -1,0 +1,4 @@
+*.o
+pthread-hello
+lookup
+queueTest
