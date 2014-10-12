@@ -36,8 +36,10 @@ int dnslookup(const char* hostname, char* firstIPstr, int maxSize) {
 
   /* Loop Through result Linked List */
   for(result=headresult; result != NULL; result = result->ai_next) {
+
     /* Extract IP Address and Convert to String */
     if(result->ai_addr->sa_family == AF_INET) {
+
       /* IPv4 Address Handling */
       ipv4sock = (struct sockaddr_in*)(result->ai_addr);
       ipv4addr = &(ipv4sock->sin_addr);
@@ -45,8 +47,9 @@ int dnslookup(const char* hostname, char* firstIPstr, int maxSize) {
         perror("Error Converting IP to String");
         return UTIL_FAILURE;
       }
+
       #ifdef UTIL_DEBUG
-      fprintf(stdout, "%s\n", ipv4str);
+        fprintf(stdout, "%s\n", ipv4str);
       #endif
       strncpy(ipstr, ipv4str, sizeof(ipstr));
       ipstr[sizeof(ipstr)-1] = '\0';
@@ -56,7 +59,7 @@ int dnslookup(const char* hostname, char* firstIPstr, int maxSize) {
       #ifdef UTIL_DEBUG
       fprintf(stdout, "IPv6 Address: Not Handled\n");
       #endif
-      strncpy(ipstr, "UNHANDELED", sizeof(ipstr));
+      strncpy(ipstr, "UNHANDLED", sizeof(ipstr));
       ipstr[sizeof(ipstr)-1] = '\0';
     }
     else {
@@ -64,7 +67,7 @@ int dnslookup(const char* hostname, char* firstIPstr, int maxSize) {
       #ifdef UTIL_DEBUG
       fprintf(stdout, "Unknown Protocol: Not Handled\n");
       #endif
-      strncpy(ipstr, "UNHANDELED", sizeof(ipstr));
+      strncpy(ipstr, "UNHANDLED", sizeof(ipstr));
       ipstr[sizeof(ipstr)-1] = '\0';
     }
     /* Save First IP Address */

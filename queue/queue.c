@@ -63,9 +63,9 @@ int queue_is_full(queue* q) {
 
 void* queue_pop(queue* q) {
   void* ret_payload;
-  if(queue_is_empty(q)) {
+  if(queue_is_empty(q))
     return NULL;
-  }
+
   ret_payload = q->array[q->front].payload;
   q->array[q->front].payload = NULL;
   q->front = ((q->front + 1) % q->maxSize);
