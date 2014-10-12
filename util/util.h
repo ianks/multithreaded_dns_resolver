@@ -7,7 +7,6 @@
  * Description:
  * 	This file contains declarations of utility functions for
  *      Programming Assignment 2.
- *  
  */
 
 #ifndef UTIL_H
@@ -33,8 +32,6 @@
  * for hostname. IP address returned as string
  * firstIPstr of size maxsize
  */
-int dnslookup(const char* hostname,
-	      char* firstIPstr,
-	      int maxSize);
+int dnslookup(const char* hostname, char* firstIPstr, int maxSize);
 
 #endif

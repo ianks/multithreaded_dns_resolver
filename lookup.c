@@ -22,7 +22,7 @@
 #define SBUFSIZE 1025
 #define INPUTFS "%1024s"
 
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[]) {
 
   /* Local Vars */
   FILE* inputfp = NULL;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]){
   int i;
 
   /* Check Arguments */
-  if(argc < MINARGS){
+  if(argc < MINARGS) {
     fprintf(stderr, "Not enough arguments: %d\n", (argc - 1));
     fprintf(stderr, "Usage:\n %s %s\n", argv[0], USAGE);
     return EXIT_FAILURE;
@@ -41,29 +41,26 @@ int main(int argc, char* argv[]){
 
   /* Open Output File */
   outputfp = fopen(argv[(argc-1)], "w");
-  if(!outputfp){
+  if(!outputfp) {
     perror("Error Opening Output File");
     return EXIT_FAILURE;
   }
 
   /* Loop Through Input Files */
-  for(i=1; i<(argc-1); i++){
-
+  for(i=1; i<(argc-1); i++) {
     /* Open Input File */
     inputfp = fopen(argv[i], "r");
 
-    if(!inputfp){
+    if(!inputfp) {
       sprintf(errorstr, "Error Opening Input File: %s", argv[i]);
       perror(errorstr);
       break;
     }
 
     /* Read File and Process*/
-    while(fscanf(inputfp, INPUTFS, hostname) > 0){
-
+    while(fscanf(inputfp, INPUTFS, hostname) > 0) {
       /* Lookup hostname and get IP string */
-      if(dnslookup(hostname, firstipstr, sizeof(firstipstr))
-          == UTIL_FAILURE){
+      if(dnslookup(hostname, firstipstr, sizeof(firstipstr)) == UTIL_FAILURE) {
         fprintf(stderr, "dnslookup error: %s\n", hostname);
         strncpy(firstipstr, "", sizeof(firstipstr));
       }
