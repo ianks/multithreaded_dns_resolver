@@ -13,7 +13,14 @@
 #define INPUTFS "%1024s"
 #define NUM_THREADS 4
 
+pthread_mutex_t queue_lock;
+pthread_cond_t queue_full;
+
 int NUM_FILES;
+
+/* Make our queue available to all threads */
+queue address_queue;
+int queue_size;
 
 /* Each thread reads it own txt file to avoid race conditions */
 void* read_file(void* filename)
@@ -23,8 +30,22 @@ void* read_file(void* filename)
   /* Read File and Process*/
   FILE* file = fopen((char*) filename, "r");
 
+  /* Scan through files, push hostname to queue while locked */
   while (fscanf(file, INPUTFS, hostname) > 0) {
-    printf("%s\n", hostname);
+
+    pthread_mutex_lock(&queue_lock);
+
+    /* Check to see that there is space in the queue */
+    while (queue_is_full(&address_queue))
+      pthread_cond_wait(&queue_full, &queue_lock);
+
+    queue_push(&address_queue, hostname);
+
+    /* This can be removed, just showing that cond_wait works */
+    char* payload = queue_pop(&address_queue);
+    queue_push(&address_queue, hostname);
+    printf("%s\n", payload);
+    pthread_mutex_unlock(&queue_lock);
   }
 
   fclose(file);
@@ -33,7 +54,6 @@ void* read_file(void* filename)
 
 int req_pool(char* filenames[])
 {
-  printf("%d", (NUM_FILES));
   pthread_t req_threads[NUM_FILES];
 
   /* Thread pool for reading files */
@@ -42,19 +62,22 @@ int req_pool(char* filenames[])
   for (i = 0; i < NUM_FILES; i++) {
     char* filename = filenames[i];
     thread_id = pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
+    pthread_join(req_threads[i], NULL);
   }
 
-  /* Wait for threads to finish */
-  /* This may not be neccesary as we fill the queue other threads can read */
-  for (i = 0; i < NUM_FILES; i++)
-    pthread_join(req_threads[i], NULL);
+  pthread_mutex_destroy(&queue_lock);
+  pthread_exit(NULL);
 
   return EXIT_SUCCESS;
 }
 
 int main(int argc, char* argv[])
 {
+  pthread_cond_init(&queue_full, NULL);
+  pthread_mutex_init(&queue_lock, NULL);
+
   NUM_FILES = argc - 2;
+  queue_size = queue_init(&address_queue, 5);
 
   /* Check Arguments */
   if(argc < MINARGS) {
@@ -64,6 +87,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
+  /* Extract the filenames from argv */
   char* filenames[NUM_FILES];
   int i;
   for (i = 1; i < (argc - 1); i++)
