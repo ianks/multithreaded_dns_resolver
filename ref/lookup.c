@@ -15,7 +15,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "util/util.h"
+#include "../util/util.h"
 
 #define MINARGS 3
 #define USAGE "<inputFilePath> <outputFilePath>"
@@ -23,7 +23,7 @@
 #define INPUTFS "%1024s"
 
 int
-main(int argc, char* argv[]) 
+main(int argc, char* argv[])
 {
   /* Local Vars */
   FILE* inputfp = NULL;
