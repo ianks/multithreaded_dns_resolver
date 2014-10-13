@@ -22,8 +22,9 @@
 #define SBUFSIZE 1025
 #define INPUTFS "%1024s"
 
-int main(int argc, char* argv[]) {
-
+int
+main(int argc, char* argv[]) 
+{
   /* Local Vars */
   FILE* inputfp = NULL;
   FILE* outputfp = NULL;

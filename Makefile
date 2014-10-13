@@ -1,12 +1,15 @@
 CC = gcc
 CFLAGS = -c -g -Wall -Wextra
-LFLAGS = -Wall -Wextra -pthread
+LFLAGS = -Wall -Wextra
 
 .PHONY: all clean
 
-all: lookup queueTest pthread-hello
+all: lookup multi_lookup queueTest pthread-hello
 
 lookup: lookup.o queue.o util.o
+	$(CC) $(LFLAGS) $^ -o $@
+
+multi_lookup: multi_lookup.o queue.o util.o
 	$(CC) $(LFLAGS) $^ -o $@
 
 queueTest: queueTest.o queue.o
@@ -17,6 +20,9 @@ pthread-hello: pthread-hello.o
 
 lookup.o: lookup.c
 	$(CC) $(CFLAGS) $<
+
+multi_lookup.o: multi_lookup.c
+	$(CC) $(CFLAGS) -pthread $<
 
 queueTest.o: queue/queueTest.c
 	$(CC) $(CFLAGS) $<
@@ -31,7 +37,7 @@ pthread-hello.o: pthread-hello.c
 	$(CC) $(CFLAGS) $<
 
 clean:
-	rm -f lookup queueTest pthread-hello
+	rm -f lookup queueTest pthread-hello multi_lookup
 	rm -f *.o
 	rm -f *~
 	rm -f results.txt

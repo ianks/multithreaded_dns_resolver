@@ -2,3 +2,4 @@
 pthread-hello
 lookup
 queueTest
+multi_lookup
