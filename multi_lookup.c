@@ -101,43 +101,36 @@ void* dns_output()
       pthread_mutex_unlock(&incrementer_lock);
 
       if (EXIT_THREAD){
-        printf("exit the dns_output %d\n", FILES_FINISHED_PROCESSING);
+        printf("All files have been processed. Return.\n");
+
+        /* Make sure we drop the lock before exiting routine */
         pthread_mutex_unlock(&queue_lock);
         return NULL;
       }
 
-      printf("cond_wait not empty: %d\n", FILES_FINISHED_PROCESSING);
-      fflush(stdout);
       pthread_cond_wait(&queue_not_empty, &queue_lock);
-      printf("cond_wait exit: %d\n", FILES_FINISHED_PROCESSING);
     }
 
-    printf("not stuck: %d\n", FILES_FINISHED_PROCESSING);
+    printf("Continue lookup. File number: %d\n", FILES_FINISHED_PROCESSING);
     fflush(stdout);
 
     char* hostname = (char*) queue_pop(&address_queue);
     pthread_cond_signal(&queue_not_full);
-    char* hostname_copy;
 
-    hostname_copy = malloc(sizeof(char) * strlen(hostname));
+    char* hostname_copy = malloc(sizeof(char) * strlen(hostname));
     strcpy(hostname_copy, hostname);
 
-    /* pthread_mutex_lock(&file_lock); */
-
-
-    /* pthread_mutex_lock(&dns_lock); */
     if(dnslookup(hostname_copy, firstipstr, sizeof(firstipstr)) == UTIL_FAILURE) {
-      fprintf(stderr, "dnslookup error: %s\n", hostname);
+      /* fprintf(stderr, "dnslookup error: %s\n", hostname); */
       strncpy(firstipstr, "", sizeof(firstipstr));
     }
-    /* pthread_mutex_unlock(&dns_lock); */
-
 
     /* Print to file */
     pthread_mutex_lock(&print_lock);
     fprintf(outputfp, "%s, %s\n", hostname_copy, firstipstr);
     pthread_mutex_unlock(&print_lock);
 
+    /* Don't memory leak */
     free(hostname_copy);
 
     /* Unlock queue */
