@@ -41,7 +41,10 @@ void* read_file(void* filename)
 
     /* Check to see that there is space in the queue */
     while (queue_is_full(&address_queue)){
+      printf("cond_wait q not full: %d\n", FILES_FINISHED_PROCESSING);
+      fflush(stdout);
       pthread_cond_wait(&queue_not_full, &queue_lock);
+      printf("cond_wait q not full exti: %d\n", FILES_FINISHED_PROCESSING);
     }
 
     queue_push(&address_queue, hostname);
@@ -72,12 +75,13 @@ void* req_pool(void* files)
     pthread_join(req_threads[i], NULL);
   }
 
-  pthread_cond_signal(&queue_not_empty);
+  for(int i = 0; i < NUM_FILES; i++)
+    pthread_cond_signal(&queue_not_empty);
 
   return NULL;
 }
 
-void* res_pool()
+void* dns_output()
 {
   char firstipstr[INET6_ADDRSTRLEN];
   FILE* outputfp = fopen("hardcoded_output.txt", "w");
@@ -89,17 +93,25 @@ void* res_pool()
 
       /* Queue is empty and no more files left, we're done */
       if (FILES_FINISHED_PROCESSING == NUM_FILES){
+        printf("exit the dns_output %d\n", FILES_FINISHED_PROCESSING);
+        pthread_mutex_unlock(&queue_lock);
         return NULL;
       }
 
+      printf("cond_wait not empty: %d\n", FILES_FINISHED_PROCESSING);
+      fflush(stdout);
       pthread_cond_wait(&queue_not_empty, &queue_lock);
+      printf("cond_wait exit: %d\n", FILES_FINISHED_PROCESSING);
     }
 
+    printf("not stuck: %d\n", FILES_FINISHED_PROCESSING);
+    fflush(stdout);
+
     char* hostname = (char*) queue_pop(&address_queue);
+    pthread_cond_signal(&queue_not_full);
     char* hostname_copy;
 
     hostname_copy = malloc(sizeof(char) * strlen(hostname));
-    pthread_cond_signal(&queue_not_full);
     strcpy(hostname_copy, hostname);
 
     /* pthread_mutex_lock(&file_lock); */
@@ -123,6 +135,19 @@ void* res_pool()
   }
 
     fclose(outputfp);
+
+  return NULL;
+}
+
+void* res_pool()
+{
+  pthread_t res_threads[NUM_FILES];
+
+  /* Thread pool for reading files */
+  for (int i = 0; i < 3; i++) {
+    int thread_id = pthread_create(&(res_threads[i]), NULL, dns_output, NULL);
+    pthread_join(res_threads[i], NULL);
+  }
 
   return NULL;
 }
