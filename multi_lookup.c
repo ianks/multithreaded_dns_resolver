@@ -54,7 +54,7 @@ void* read_file(void* filename)
     pthread_mutex_unlock(&queue_lock);
 
     /* fscan is not atomic, so we sleep #headaches */
-    usleep(100);
+    usleep(50);
   }
 
   FILES_FINISHED_PROCESSING++;
@@ -72,7 +72,7 @@ void* req_pool(void* files)
   /* Thread pool for reading files */
   for (int i = 0; i < NUM_FILES; i++) {
     char* filename = filenames[i];
-    int thread_id = pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
+    pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
     pthread_join(req_threads[i], NULL);
   }
 
@@ -118,12 +118,12 @@ void* dns_output()
     /* pthread_mutex_lock(&file_lock); */
 
 
-    pthread_mutex_lock(&dns_lock);
+    /* pthread_mutex_lock(&dns_lock); */
     if(dnslookup(hostname_copy, firstipstr, sizeof(firstipstr)) == UTIL_FAILURE) {
       fprintf(stderr, "dnslookup error: %s\n", hostname);
       strncpy(firstipstr, "", sizeof(firstipstr));
     }
-    pthread_mutex_unlock(&dns_lock);
+    /* pthread_mutex_unlock(&dns_lock); */
 
 
     /* Print to file */
@@ -146,7 +146,7 @@ void* res_pool()
 
   /* Thread pool for reading files */
   for (int i = 0; i < NUM_FILES; i++) {
-    int thread_id = pthread_create(&(res_threads[i]), NULL, dns_output, NULL);
+    pthread_create(&(res_threads[i]), NULL, dns_output, NULL);
     pthread_join(res_threads[i], NULL);
   }
 
