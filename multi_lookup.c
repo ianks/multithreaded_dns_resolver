@@ -22,6 +22,7 @@ pthread_cond_t queue_not_empty;
 
 int NUM_FILES;
 int FILES_FINISHED_PROCESSING;
+char* OUTFILE;
 
 /* Make our queue available to all threads */
 queue address_queue;
@@ -84,7 +85,7 @@ void* req_pool(void* files)
 void* dns_output()
 {
   char firstipstr[INET6_ADDRSTRLEN];
-  FILE* outputfp = fopen("hardcoded_output.txt", "w");
+  FILE* outputfp = fopen(OUTFILE, "w");
 
   while(1){
     pthread_mutex_lock(&queue_lock);
@@ -144,7 +145,7 @@ void* res_pool()
   pthread_t res_threads[NUM_FILES];
 
   /* Thread pool for reading files */
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < NUM_FILES; i++) {
     int thread_id = pthread_create(&(res_threads[i]), NULL, dns_output, NULL);
     pthread_join(res_threads[i], NULL);
   }
@@ -174,6 +175,8 @@ int main(int argc, char* argv[])
 
     return EXIT_FAILURE;
   }
+
+  OUTFILE = argv[argc - 1];
 
   /* Initialize vars */
   init_variables(argc);
