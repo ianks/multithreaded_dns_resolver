@@ -135,8 +135,10 @@ void* dns_output()
 
     /* Print to file */
     pthread_mutex_lock(&print_lock);
-    fprintf(outputfp, "%s, %s\n",hostname_copy, firstipstr);
+    fprintf(outputfp, "%s, %s\n", hostname_copy, firstipstr);
     pthread_mutex_unlock(&print_lock);
+
+    free(hostname_copy);
 
     /* Unlock queue */
     pthread_mutex_unlock(&queue_lock);
