@@ -102,7 +102,7 @@ void* res_pool()
     pthread_cond_signal(&queue_not_full);
     strcpy(hostname_copy, hostname);
 
-    pthread_mutex_lock(&file_lock);
+    /* pthread_mutex_lock(&file_lock); */
 
 
     pthread_mutex_lock(&dns_lock);
@@ -118,10 +118,8 @@ void* res_pool()
     fprintf(outputfp, "%s, %s\n",hostname_copy, firstipstr);
     pthread_mutex_unlock(&print_lock);
 
-    /* printf("%s, %s\n", hostname, firstipstr); */
-    pthread_mutex_unlock(&file_lock);
+    /* Unlock queue */
     pthread_mutex_unlock(&queue_lock);
-
   }
 
     fclose(outputfp);
