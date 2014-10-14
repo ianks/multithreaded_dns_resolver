@@ -54,7 +54,6 @@ void* read_file(void* filename)
   FILES_FINISHED_PROCESSING++;
 
   fclose(file);
-  pthread_exit(NULL);
 
   return NULL;
 }
@@ -68,7 +67,10 @@ void* req_pool(void* files)
   for (int i = 0; i < NUM_FILES; i++) {
     char* filename = filenames[i];
     int thread_id = pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
+    pthread_join(req_threads[i], NULL);
   }
+
+  pthread_cond_signal(&queue_not_empty);
 
   return NULL;
 }
@@ -80,10 +82,8 @@ void* res_pool()
 
     while(queue_is_empty(&address_queue)){
 
-      /* Kind of a hack, gets caught on conditional before the final file is */
-      /* finished processing */
-      if (FILES_FINISHED_PROCESSING == NUM_FILES - 1
-          || FILES_FINISHED_PROCESSING == NUM_FILES){
+      /* Queue is empty and no more files left, we're done */
+      if (FILES_FINISHED_PROCESSING == NUM_FILES){
         return NULL;
       }
 
