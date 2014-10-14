@@ -15,6 +15,7 @@
 
 pthread_mutex_t queue_lock;
 pthread_mutex_t dns_lock;
+pthread_mutex_t incrementer_lock;
 pthread_mutex_t file_lock;
 pthread_mutex_t print_lock;
 pthread_cond_t queue_not_full;
@@ -57,7 +58,9 @@ void* read_file(void* filename)
     usleep(50);
   }
 
+  pthread_mutex_lock(&incrementer_lock);
   FILES_FINISHED_PROCESSING++;
+  pthread_mutex_unlock(&incrementer_lock);
 
   fclose(file);
 
@@ -93,7 +96,11 @@ void* dns_output()
     while(queue_is_empty(&address_queue)){
 
       /* Queue is empty and no more files left, we're done */
-      if (FILES_FINISHED_PROCESSING == NUM_FILES){
+      pthread_mutex_lock(&incrementer_lock);
+      int EXIT_THREAD = (FILES_FINISHED_PROCESSING == NUM_FILES);
+      pthread_mutex_unlock(&incrementer_lock);
+
+      if (EXIT_THREAD){
         printf("exit the dns_output %d\n", FILES_FINISHED_PROCESSING);
         pthread_mutex_unlock(&queue_lock);
         return NULL;
@@ -163,6 +170,7 @@ void init_variables(int argc)
   pthread_mutex_init(&queue_lock, NULL);
   pthread_mutex_init(&print_lock, NULL);
   pthread_mutex_init(&file_lock, NULL);
+  pthread_mutex_init(&incrementer_lock, NULL);
   pthread_mutex_init(&dns_lock, NULL);
 }
 
