@@ -15,9 +15,11 @@
 
 pthread_mutex_t queue_lock;
 pthread_mutex_t file_lock;
-pthread_cond_t queue_full;
+pthread_cond_t queue_not_full;
+pthread_cond_t queue_not_empty;
 
 int NUM_FILES;
+int FILES_FINISHED_PROCESSING;
 
 /* Make our queue available to all threads */
 queue address_queue;
@@ -36,17 +38,20 @@ void* read_file(void* filename)
     pthread_mutex_lock(&queue_lock);
 
     /* Check to see that there is space in the queue */
-    while (queue_is_full(&address_queue))
-      pthread_cond_wait(&queue_full, &queue_lock);
+    while (queue_is_full(&address_queue)){
+      pthread_cond_wait(&queue_not_full, &queue_lock);
+    }
 
     queue_push(&address_queue, hostname);
+    pthread_cond_signal(&queue_not_empty);
 
-    /* This can be removed, just showing that cond_wait works */
-    char* payload = queue_pop(&address_queue);
-    queue_push(&address_queue, hostname);
-    printf("%s\n", payload);
     pthread_mutex_unlock(&queue_lock);
+
+    /* fscan is not atomic, so we sleep #headaches */
+    usleep(100);
   }
+
+  FILES_FINISHED_PROCESSING++;
 
   fclose(file);
   pthread_exit(NULL);
@@ -56,17 +61,13 @@ void* read_file(void* filename)
 
 void* req_pool(void* files)
 {
-  char** filenames;
-  filenames = (char**) files;
+  char** filenames = (char**) files;
   pthread_t req_threads[NUM_FILES];
 
   /* Thread pool for reading files */
-  int i;
-  int thread_id;
-  for (i = 0; i < NUM_FILES; i++) {
+  for (int i = 0; i < NUM_FILES; i++) {
     char* filename = filenames[i];
-    thread_id = pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
-    pthread_join(req_threads[i], NULL);
+    int thread_id = pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
   }
 
   return NULL;
@@ -74,18 +75,44 @@ void* req_pool(void* files)
 
 void* res_pool()
 {
+  while(1){
+    pthread_mutex_lock(&queue_lock);
+
+    while(queue_is_empty(&address_queue)){
+
+      /* Kind of a hack, gets caught on conditional before the final file is */
+      /* finished processing */
+      if (FILES_FINISHED_PROCESSING == NUM_FILES - 1
+          || FILES_FINISHED_PROCESSING == NUM_FILES){
+        return NULL;
+      }
+
+      pthread_cond_wait(&queue_not_empty, &queue_lock);
+    }
+
+    char* hostname = queue_pop(&address_queue);
+    printf("%s\n", hostname);
+
+    pthread_cond_signal(&queue_not_full);
+    pthread_mutex_unlock(&queue_lock);
+  }
+
   return NULL;
+}
+
+void init_variables(int argc)
+{
+  FILES_FINISHED_PROCESSING = 0;
+  NUM_FILES = argc - 2;
+  queue_init(&address_queue, 16);
+  pthread_cond_init(&queue_not_full, NULL);
+  pthread_cond_init(&queue_not_empty, NULL);
+  pthread_mutex_init(&queue_lock, NULL);
+  pthread_mutex_init(&file_lock, NULL);
 }
 
 int main(int argc, char* argv[])
 {
-  /* Initialize vars */
-  NUM_FILES = argc - 2;
-  queue_size = queue_init(&address_queue, 500);
-  pthread_cond_init(&queue_full, NULL);
-  pthread_mutex_init(&queue_lock, NULL);
-  pthread_mutex_init(&file_lock, NULL);
-
   /* Check arguments */
   if(argc < MINARGS) {
     fprintf(stderr, "Not enough arguments: %d\n", (argc - 1));
@@ -94,10 +121,12 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
+  /* Initialize vars */
+  init_variables(argc);
+
   /* Extract the filenames from argv */
   char* filenames[NUM_FILES];
-  int i;
-  for (i = 1; i < (argc - 1); i++)
+  for (int i = 1; i < (argc - 1); i++)
     filenames[i - 1] = argv[i];
 
   /* IDs for producer and consumer threads */
@@ -111,8 +140,6 @@ int main(int argc, char* argv[])
   int consumer_thread;
   consumer_thread = pthread_create(&(consumer), NULL, res_pool, NULL);
 
-  /* Don't finish until producer and consumer threads return */
-  pthread_join(producer, NULL);
   pthread_join(consumer, NULL);
 
   /* Destroy the locks */
