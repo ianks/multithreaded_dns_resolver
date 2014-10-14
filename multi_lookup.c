@@ -166,7 +166,6 @@ void init_variables(int argc)
   pthread_mutex_init(&print_lock, NULL);
   pthread_mutex_init(&file_lock, NULL);
   pthread_mutex_init(&incrementer_lock, NULL);
-  pthread_mutex_init(&dns_lock, NULL);
 }
 
 int main(int argc, char* argv[])
