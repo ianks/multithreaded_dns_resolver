@@ -61,13 +61,15 @@ main(int argc, char* argv[])
     /* Read File and Process*/
     while(fscanf(inputfp, INPUTFS, hostname) > 0) {
       /* Lookup hostname and get IP string */
+      printf("%s %s %d\n", hostname, firstipstr, sizeof(firstipstr));
+
       if(dnslookup(hostname, firstipstr, sizeof(firstipstr)) == UTIL_FAILURE) {
         fprintf(stderr, "dnslookup error: %s\n", hostname);
         strncpy(firstipstr, "", sizeof(firstipstr));
       }
 
       /* Write to Output File */
-      fprintf(outputfp, "%s,%s\n", hostname, firstipstr);
+      /* fprintf(outputfp, "%s,%s\n", hostname, firstipstr); */
     }
 
     /* Close Input File */
