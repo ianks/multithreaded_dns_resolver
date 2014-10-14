@@ -24,10 +24,9 @@ pthread_cond_t queue_not_empty;
 int NUM_FILES;
 int FILES_FINISHED_PROCESSING;
 char* OUTFILE;
-
-/* Make our queue available to all threads */
-queue address_queue;
 int queue_size;
+queue address_queue;
+
 
 /* Each thread reads it own txt file to avoid race conditions */
 void* read_file(void* filename)
@@ -67,23 +66,6 @@ void* read_file(void* filename)
   return NULL;
 }
 
-void* req_pool(void* files)
-{
-  char** filenames = (char**) files;
-  pthread_t req_threads[NUM_FILES];
-
-  /* Thread pool for reading files */
-  for (int i = 0; i < NUM_FILES; i++) {
-    char* filename = filenames[i];
-    pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
-    pthread_join(req_threads[i], NULL);
-  }
-
-  for(int i = 0; i < NUM_FILES; i++)
-    pthread_cond_signal(&queue_not_empty);
-
-  return NULL;
-}
 
 void* dns_output()
 {
@@ -108,20 +90,23 @@ void* dns_output()
         return NULL;
       }
 
+      /* Wait until the producers add something to queue */
       pthread_cond_wait(&queue_not_empty, &queue_lock);
     }
 
-    printf("Continue lookup. File number: %d\n", FILES_FINISHED_PROCESSING);
+    printf("Continue lookup. File number: %d / %d\n", FILES_FINISHED_PROCESSING, NUM_FILES);
     fflush(stdout);
 
     char* hostname = (char*) queue_pop(&address_queue);
     pthread_cond_signal(&queue_not_full);
 
+    /* We have to copy hostname here to avoid segfault */
+    /* Tell me why and I'll give you a dollar */
     char* hostname_copy = malloc(sizeof(char) * strlen(hostname));
     strcpy(hostname_copy, hostname);
 
     if(dnslookup(hostname_copy, firstipstr, sizeof(firstipstr)) == UTIL_FAILURE) {
-      /* fprintf(stderr, "dnslookup error: %s\n", hostname); */
+      fprintf(stderr, "dnslookup error: %s\n", hostname);
       strncpy(firstipstr, "", sizeof(firstipstr));
     }
 
@@ -137,10 +122,11 @@ void* dns_output()
     pthread_mutex_unlock(&queue_lock);
   }
 
-    fclose(outputfp);
+  fclose(outputfp);
 
   return NULL;
 }
+
 
 void* res_pool()
 {
@@ -155,6 +141,25 @@ void* res_pool()
   return NULL;
 }
 
+void* req_pool(void* files)
+{
+  char** filenames = (char**) files;
+  pthread_t req_threads[NUM_FILES];
+
+  /* Thread pool for reading files */
+  for (int i = 0; i < NUM_FILES; i++) {
+    char* filename = filenames[i];
+    pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
+    pthread_join(req_threads[i], NULL);
+  }
+
+  for(int i = 0; i < NUM_FILES; i++)
+    pthread_cond_signal(&queue_not_empty);
+
+  return NULL;
+}
+
+
 void init_variables(int argc)
 {
   FILES_FINISHED_PROCESSING = 0;
@@ -168,6 +173,7 @@ void init_variables(int argc)
   pthread_mutex_init(&incrementer_lock, NULL);
 }
 
+
 int main(int argc, char* argv[])
 {
   /* Check arguments */
@@ -178,6 +184,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
+  /* Where we write our output to */
   OUTFILE = argv[argc - 1];
 
   /* Initialize vars */
@@ -199,11 +206,13 @@ int main(int argc, char* argv[])
   int consumer_thread;
   consumer_thread = pthread_create(&(consumer), NULL, res_pool, NULL);
 
+  /* Wait for consumer to finish before main exits */
   pthread_join(consumer, NULL);
 
-  /* Destroy the locks */
+  /* Be cleanly */
   pthread_mutex_destroy(&queue_lock);
   pthread_mutex_destroy(&file_lock);
+  queue_cleanup(&address_queue);
 
   return EXIT_SUCCESS;
 }
