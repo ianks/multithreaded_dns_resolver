@@ -16,6 +16,7 @@
 pthread_mutex_t queue_lock;
 pthread_mutex_t dns_lock;
 pthread_mutex_t file_lock;
+pthread_mutex_t print_lock;
 pthread_cond_t queue_not_full;
 pthread_cond_t queue_not_empty;
 
@@ -78,8 +79,8 @@ void* req_pool(void* files)
 
 void* res_pool()
 {
-  FILE* outputfp = fopen("hardcoded_output.txt", "w");
   char firstipstr[INET6_ADDRSTRLEN];
+  FILE* outputfp = fopen("hardcoded_output.txt", "w");
 
   while(1){
     pthread_mutex_lock(&queue_lock);
@@ -111,15 +112,19 @@ void* res_pool()
     }
     pthread_mutex_unlock(&dns_lock);
 
-    /* fprintf(outputfp, "%s, %s\n", hostname, firstipstr); */
+
+    /* Print to file */
+    pthread_mutex_lock(&print_lock);
+    fprintf(outputfp, "%s, %s\n",hostname_copy, firstipstr);
+    pthread_mutex_unlock(&print_lock);
+
     /* printf("%s, %s\n", hostname, firstipstr); */
-    printf("%s %s %d\n", hostname_copy, firstipstr, sizeof(firstipstr));
     pthread_mutex_unlock(&file_lock);
     pthread_mutex_unlock(&queue_lock);
 
   }
 
-  fclose(outputfp);
+    fclose(outputfp);
 
   return NULL;
 }
@@ -132,6 +137,7 @@ void init_variables(int argc)
   pthread_cond_init(&queue_not_full, NULL);
   pthread_cond_init(&queue_not_empty, NULL);
   pthread_mutex_init(&queue_lock, NULL);
+  pthread_mutex_init(&print_lock, NULL);
   pthread_mutex_init(&file_lock, NULL);
   pthread_mutex_init(&dns_lock, NULL);
 }
