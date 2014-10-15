@@ -52,9 +52,6 @@ void* read_file(void* filename)
     pthread_cond_signal(&queue_not_empty);
 
     pthread_mutex_unlock(&queue_lock);
-
-    /* fscan is not atomic, so we sleep #headaches */
-    usleep(100);
   }
 
   pthread_mutex_lock(&incrementer_lock);
