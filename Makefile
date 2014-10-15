@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -c -g -Wall -Wextra
+CFLAGS = -c -g -Wall -Wextra -lpthread
 LFLAGS = -Wall -Wextra
 
 .PHONY: all clean
@@ -22,7 +22,7 @@ lookup.o: ref/lookup.c
 	$(CC) $(CFLAGS) $<
 
 multi_lookup.o: multi_lookup.c
-	$(CC) $(CFLAGS) -pthread $<
+	$(CC) $(CFLAGS) $<
 
 queueTest.o: queue/queueTest.c
 	$(CC) $(CFLAGS) $<

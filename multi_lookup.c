@@ -54,7 +54,7 @@ void* read_file(void* filename)
     pthread_mutex_unlock(&queue_lock);
 
     /* fscan is not atomic, so we sleep #headaches */
-    usleep(50);
+    usleep(100);
   }
 
   pthread_mutex_lock(&incrementer_lock);
@@ -133,7 +133,8 @@ void* res_pool()
   pthread_t res_threads[NUM_FILES];
 
   /* Thread pool for reading files */
-  for (int i = 0; i < NUM_FILES; i++) {
+  int i;
+  for (i = 0; i < NUM_FILES; i++) {
     pthread_create(&(res_threads[i]), NULL, dns_output, NULL);
     pthread_join(res_threads[i], NULL);
   }
@@ -147,13 +148,14 @@ void* req_pool(void* files)
   pthread_t req_threads[NUM_FILES];
 
   /* Thread pool for reading files */
-  for (int i = 0; i < NUM_FILES; i++) {
+  int i;
+  for (i = 0; i < NUM_FILES; i++) {
     char* filename = filenames[i];
     pthread_create(&(req_threads[i]), NULL, read_file, (void*) filename);
     pthread_join(req_threads[i], NULL);
   }
 
-  for(int i = 0; i < NUM_FILES; i++)
+  for (i = 0; i < NUM_FILES; i++)
     pthread_cond_signal(&queue_not_empty);
 
   return NULL;
@@ -192,7 +194,8 @@ int main(int argc, char* argv[])
 
   /* Extract the filenames from argv */
   char* filenames[NUM_FILES];
-  for (int i = 1; i < (argc - 1); i++)
+  int i;
+  for (i = 1; i < (argc - 1); i++)
     filenames[i - 1] = argv[i];
 
   /* IDs for producer and consumer threads */
